@@ -20,6 +20,11 @@
 }
 
 /* Custom subtle scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #D5C5AC #F3ECE1;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

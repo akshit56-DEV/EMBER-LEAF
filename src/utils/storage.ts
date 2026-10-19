@@ -3,9 +3,9 @@
  */
 
 export const STORAGE_KEYS = {
-  INVENTORY: 'ember_leaf_inventory_v2',
-  CART: 'ember_leaf_cart_v2',
-  PROCESSED_ORDERS: 'ember_leaf_processed_orders_v2',
+  INVENTORY: 'ember_leaf_inventory_v6',
+  CART: 'ember_leaf_cart_v6',
+  PROCESSED_ORDERS: 'ember_leaf_processed_orders_v6',
 } as const;
 
 export function loadFromStorage<T>(key: string, defaultValue: T): T {

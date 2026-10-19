@@ -25,8 +25,34 @@ const InventoryContext = createContext<InventoryContextType | undefined>(undefin
 export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { showToast } = useToast();
   const [products, setProducts] = useState<Product[]>(() => {
-    return loadFromStorage<Product[]>(STORAGE_KEYS.INVENTORY, INITIAL_PRODUCTS);
+    const data = loadFromStorage<Product[]>(STORAGE_KEYS.INVENTORY, INITIAL_PRODUCTS);
+    return data.map((item) => {
+      if (item.id === 'el-008' && item.stock <= 0) {
+        return { ...item, stock: 7 };
+      }
+      return item;
+    });
   });
+
+  // Clean up legacy storage versions on startup
+  useEffect(() => {
+    try {
+      const oldKeys = [
+        'ember_leaf_inventory',
+        'ember_leaf_inventory_v1',
+        'ember_leaf_inventory_v2',
+        'ember_leaf_inventory_v3',
+        'ember_leaf_inventory_v4',
+        'ember_leaf_inventory_v5',
+        'ember_leaf_cart',
+        'ember_leaf_cart_v1',
+        'ember_leaf_cart_v2',
+      ];
+      oldKeys.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Sync to localStorage whenever products change
   useEffect(() => {

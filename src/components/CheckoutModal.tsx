@@ -39,7 +39,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [errors, setErrors] = useState<Partial<Record<keyof CustomerDetails, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Close on Escape key
+  // Close on Escape key and lock body scroll
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -47,9 +47,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       }
     };
     if (isOpen) {
+      const original = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = original;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     }
-    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;

@@ -24,15 +24,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ onOpenCheckout, onExplor
     freeShippingRemaining,
   } = useCart();
 
-  // Close on ESC
+  // Close on ESC and lock body scroll
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsCartOpen(false);
     };
     if (isCartOpen) {
+      const original = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = original;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     }
-    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isCartOpen, setIsCartOpen]);
 
   if (!isCartOpen) return null;

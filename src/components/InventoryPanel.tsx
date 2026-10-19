@@ -14,10 +14,8 @@ import {
   Package,
   Layers,
   TrendingUp,
-  AlertCircle,
   Download,
   ArrowUpDown,
-  Sparkles,
   Info,
 } from 'lucide-react';
 
@@ -57,7 +55,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
 
-  // Close on Escape
+  // Close on Escape & Lock Body Scroll to guarantee smooth modal scrolling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !isFormOpen && !deletingProductId) {
@@ -65,9 +63,14 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
       }
     };
     if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     }
-    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isFormOpen, deletingProductId, onClose]);
 
   if (!isOpen) return null;
@@ -170,19 +173,20 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-espresso-950/80 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 overflow-hidden bg-espresso-950/80 backdrop-blur-sm p-2 sm:p-4 md:p-6 flex items-center justify-center overscroll-contain animate-in fade-in duration-200"
       role="dialog"
       aria-modal="true"
       aria-labelledby="inventory-panel-title"
+      onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative bg-cream-50 w-full max-w-6xl rounded-3xl border border-sand-300 shadow-modal overflow-hidden flex flex-col max-h-[92vh] animate-in zoom-in-95 duration-200"
+        className="relative bg-cream-50 w-full max-w-6xl rounded-2xl sm:rounded-3xl border border-sand-300 shadow-modal flex flex-col overflow-hidden h-[92vh] max-h-[92vh] animate-in zoom-in-95 duration-200"
       >
-        {/* Top Header */}
-        <div className="p-5 sm:p-6 border-b border-sand-200 bg-cream-100 flex items-center justify-between flex-wrap gap-4">
+        {/* Pinned Sticky Header */}
+        <div className="p-4 sm:p-6 border-b border-sand-200 bg-cream-100/95 backdrop-blur-md flex items-center justify-between flex-wrap gap-3 flex-shrink-0 z-20">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-forest-900 text-cream-50 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-forest-900 text-cream-50 flex items-center justify-center shadow-sm">
               <Package className="w-5 h-5 text-ember-400" />
             </div>
             <div>
@@ -229,190 +233,187 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
           </div>
         </div>
 
-        {/* Demo Persistence Notice */}
-        <div className="bg-sand-100 border-b border-sand-200 px-6 py-2 flex items-center justify-between text-xs text-espresso-700 flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <Info className="w-3.5 h-3.5 text-forest-800 flex-shrink-0" />
-            <span>
-              <strong>Live Browser Persistence:</strong> All catalog updates and stock adjustments are saved to local browser storage and synchronize immediately with the storefront.
-            </span>
-          </div>
-          <span className="text-[11px] font-mono text-espresso-500">Auto-saved to localStorage</span>
-        </div>
-
-        {/* Interactive KPI Metrics Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-4 sm:p-6 bg-cream-100/60 border-b border-sand-200">
-          {/* Total Products (Clickable to reset filter) */}
-          <div
-            onClick={() => {
-              setStockStatusFilter('All');
-              setCategoryFilter('All');
-              setSearchTerm('');
-            }}
-            className="bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle hover:border-sand-300 cursor-pointer transition-all group"
-            title="Click to view all items"
-          >
-            <div className="flex items-center justify-between text-espresso-500 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider group-hover:text-forest-900">
-                Catalog SKUs
+        {/* Scrollable Content Body (Holds notice, KPIs, search, and full table) */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-4">
+          {/* Live Persistence Notice */}
+          <div className="bg-sand-100 rounded-xl border border-sand-200 px-4 py-2.5 flex items-center justify-between text-xs text-espresso-700 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Info className="w-3.5 h-3.5 text-forest-800 flex-shrink-0" />
+              <span>
+                <strong>Live Browser Persistence:</strong> All catalog updates and stock adjustments are saved to local browser storage and synchronize immediately with the storefront.
               </span>
-              <Layers className="w-4 h-4 text-forest-700" />
             </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-serif font-bold text-espresso-950">{totalProducts}</span>
-              <span className="text-[10px] text-forest-800 font-medium group-hover:underline">View all</span>
-            </div>
+            <span className="text-[11px] font-mono text-espresso-500">Auto-saved to localStorage</span>
           </div>
 
-          {/* Total Units */}
-          <div className="bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle">
-            <div className="flex items-center justify-between text-espresso-500 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Total Units</span>
-              <Package className="w-4 h-4 text-forest-700" />
+          {/* KPI Metrics Strip - HARMONIOUS BRAND STYLING, ZERO INVALID RED CARDS */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {/* Catalog SKUs */}
+            <div
+              onClick={() => {
+                setStockStatusFilter('All');
+                setCategoryFilter('All');
+                setSearchTerm('');
+              }}
+              className="bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle hover:border-sand-300 cursor-pointer transition-all group"
+              title="Click to view all items"
+            >
+              <div className="flex items-center justify-between text-espresso-500 mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider group-hover:text-forest-900">
+                  Catalog SKUs
+                </span>
+                <Layers className="w-4 h-4 text-forest-700" />
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-serif font-bold text-espresso-950">{totalProducts}</span>
+                <span className="text-[10px] text-forest-800 font-medium group-hover:underline">View all</span>
+              </div>
             </div>
-            <span className="text-2xl font-serif font-bold text-espresso-950">{totalUnitsInStock}</span>
+
+            {/* Total Units */}
+            <div className="bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle">
+              <div className="flex items-center justify-between text-espresso-500 mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Total Units</span>
+                <Package className="w-4 h-4 text-forest-700" />
+              </div>
+              <span className="text-2xl font-serif font-bold text-espresso-950">{totalUnitsInStock}</span>
+            </div>
+
+            {/* Low Stock Alert */}
+            <div
+              onClick={() => setStockStatusFilter((prev) => (prev === 'low' ? 'All' : 'low'))}
+              className={`bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle hover:border-sand-300 cursor-pointer transition-all ${
+                stockStatusFilter === 'low' ? 'ring-2 ring-forest-700 shadow-md' : ''
+              }`}
+              title="Click to filter low stock items (≤ 5 units)"
+            >
+              <div className="flex items-center justify-between text-espresso-500 mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider">
+                  Low Stock Alert
+                </span>
+                <AlertTriangle className={`w-4 h-4 ${lowStockCount > 0 ? 'text-amber-600' : 'text-espresso-400'}`} />
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-serif font-bold text-espresso-950">
+                  {lowStockCount}
+                </span>
+                <span className="text-[10px] font-medium text-espresso-500">
+                  {lowStockCount > 0 ? '≤ 5 units left' : 'All healthy'}
+                </span>
+              </div>
+            </div>
+
+            {/* Out of Stock - CLEAN BRAND NEUTRAL STYLING */}
+            <div
+              onClick={() => setStockStatusFilter((prev) => (prev === 'out' ? 'All' : 'out'))}
+              className={`bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle hover:border-sand-300 cursor-pointer transition-all ${
+                stockStatusFilter === 'out' ? 'ring-2 ring-forest-700 shadow-md' : ''
+              }`}
+              title="Click to filter out-of-stock items"
+            >
+              <div className="flex items-center justify-between text-espresso-500 mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider">
+                  Out of Stock
+                </span>
+                {outOfStockCount > 0 ? (
+                  <Package className="w-4 h-4 text-amber-700" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                )}
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-2xl font-serif font-bold text-espresso-950">
+                  {outOfStockCount}
+                </span>
+                <span className="text-[10px] font-medium text-espresso-500">
+                  {outOfStockCount > 0 ? `${outOfStockCount} items` : 'All in stock'}
+                </span>
+              </div>
+            </div>
+
+            {/* Total Stock Valuation */}
+            <div className="bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle col-span-2 sm:col-span-1">
+              <div className="flex items-center justify-between text-espresso-500 mb-1">
+                <span className="text-[11px] font-bold uppercase tracking-wider">Stock Valuation</span>
+                <TrendingUp className="w-4 h-4 text-forest-700" />
+              </div>
+              <span className="text-xl sm:text-2xl font-serif font-bold text-forest-900">
+                {formatINR(totalStockValue)}
+              </span>
+            </div>
           </div>
 
-          {/* Low Stock Alert (Clickable filter) */}
-          <div
-            onClick={() => setStockStatusFilter((prev) => (prev === 'low' ? 'All' : 'low'))}
-            className={`p-3.5 rounded-xl border shadow-subtle cursor-pointer transition-all ${
-              lowStockCount > 0
-                ? 'bg-amber-50/90 border-amber-300 text-amber-950 hover:bg-amber-100/80'
-                : 'bg-cream-50 border-sand-200 text-espresso-700 hover:border-sand-300'
-            } ${stockStatusFilter === 'low' ? 'ring-2 ring-amber-500 shadow-md' : ''}`}
-            title="Click to toggle filter for low stock items (≤ 5 units)"
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">
-                Low Stock Alert
-              </span>
-              <AlertTriangle className={`w-4 h-4 ${lowStockCount > 0 ? 'text-amber-600' : 'text-espresso-400'}`} />
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className={`text-2xl font-serif font-bold ${lowStockCount > 0 ? 'text-amber-900' : 'text-espresso-950'}`}>
-                {lowStockCount}
-              </span>
-              <span className="text-[10px] font-medium text-espresso-500">
-                {lowStockCount > 0 ? '≤ 5 units left' : 'All healthy'}
-              </span>
-            </div>
-          </div>
-
-          {/* Out of Stock (Clickable filter - NO INVALID RED CARD WHEN 0) */}
-          <div
-            onClick={() => setStockStatusFilter((prev) => (prev === 'out' ? 'All' : 'out'))}
-            className={`p-3.5 rounded-xl border shadow-subtle cursor-pointer transition-all ${
-              outOfStockCount > 0
-                ? 'bg-rose-50 border-rose-300 text-rose-950 hover:bg-rose-100/80'
-                : 'bg-cream-50 border-sand-200 text-espresso-700 hover:border-sand-300'
-            } ${stockStatusFilter === 'out' ? 'ring-2 ring-rose-500 shadow-md' : ''}`}
-            title="Click to toggle filter for out of stock items"
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">
-                Out of Stock
-              </span>
-              {outOfStockCount > 0 ? (
-                <AlertCircle className="w-4 h-4 text-rose-600" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          {/* Filter & Search Bar */}
+          <div className="bg-cream-50 p-3.5 rounded-xl border border-sand-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-espresso-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search product name, SKU or origin..."
+                className="w-full pl-9 pr-8 py-2 rounded-xl text-xs sm:text-sm bg-cream-100 border border-sand-300 focus:outline-none focus:ring-2 focus:ring-forest-700/20"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-espresso-400 hover:text-espresso-800"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               )}
             </div>
-            <div className="flex items-baseline justify-between">
-              <span className={`text-2xl font-serif font-bold ${outOfStockCount > 0 ? 'text-rose-900' : 'text-espresso-950'}`}>
-                {outOfStockCount}
-              </span>
-              <span className="text-[10px] font-medium text-espresso-500">
-                {outOfStockCount > 0 ? 'Needs restock' : 'None out of stock'}
+
+            {/* Filters & Count */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Category Filter */}
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value as ProductCategory | 'All')}
+                className="bg-cream-100 border border-sand-300 text-espresso-800 text-xs font-medium py-2 px-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-700/20 cursor-pointer"
+              >
+                <option value="All">All Categories</option>
+                <option value="Coffee">Coffee</option>
+                <option value="Tea">Tea</option>
+                <option value="Brewing Equipment">Brewing Equipment</option>
+                <option value="Accessories">Accessories</option>
+              </select>
+
+              {/* Stock Status Filter */}
+              <select
+                value={stockStatusFilter}
+                onChange={(e) => setStockStatusFilter(e.target.value as 'All' | 'low' | 'out' | 'in')}
+                className="bg-cream-100 border border-sand-300 text-espresso-800 text-xs font-medium py-2 px-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-700/20 cursor-pointer"
+              >
+                <option value="All">All Stock Levels</option>
+                <option value="in">In Stock (&gt; 5)</option>
+                <option value="low">Low Stock (≤ 5)</option>
+                <option value="out">Out of Stock (0)</option>
+              </select>
+
+              {(stockStatusFilter !== 'All' || categoryFilter !== 'All' || searchTerm) && (
+                <button
+                  onClick={() => {
+                    setStockStatusFilter('All');
+                    setCategoryFilter('All');
+                    setSearchTerm('');
+                  }}
+                  className="text-xs text-ember-600 hover:text-ember-700 underline font-semibold cursor-pointer ml-1"
+                >
+                  Clear Filters
+                </button>
+              )}
+
+              <span className="text-xs text-espresso-500 font-medium ml-1">
+                {filteredProducts.length} items
               </span>
             </div>
           </div>
 
-          {/* Total Stock Valuation */}
-          <div className="bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle col-span-2 sm:col-span-1">
-            <div className="flex items-center justify-between text-espresso-500 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Stock Valuation</span>
-              <TrendingUp className="w-4 h-4 text-forest-700" />
-            </div>
-            <span className="text-xl sm:text-2xl font-serif font-bold text-forest-900">
-              {formatINR(totalStockValue)}
-            </span>
-          </div>
-        </div>
-
-        {/* Filter & Search Bar */}
-        <div className="p-4 sm:p-6 border-b border-sand-200 bg-cream-50 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-espresso-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search product name, SKU or origin..."
-              className="w-full pl-9 pr-8 py-2 rounded-xl text-xs sm:text-sm bg-cream-100 border border-sand-300 focus:outline-none focus:ring-2 focus:ring-forest-700/20"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-espresso-400 hover:text-espresso-800"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Filters & Count */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Category Filter */}
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value as ProductCategory | 'All')}
-              className="bg-cream-100 border border-sand-300 text-espresso-800 text-xs font-medium py-2 px-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-700/20 cursor-pointer"
-            >
-              <option value="All">All Categories</option>
-              <option value="Coffee">Coffee</option>
-              <option value="Tea">Tea</option>
-              <option value="Brewing Equipment">Brewing Equipment</option>
-              <option value="Accessories">Accessories</option>
-            </select>
-
-            {/* Stock Status Filter */}
-            <select
-              value={stockStatusFilter}
-              onChange={(e) => setStockStatusFilter(e.target.value as 'All' | 'low' | 'out' | 'in')}
-              className="bg-cream-100 border border-sand-300 text-espresso-800 text-xs font-medium py-2 px-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-700/20 cursor-pointer"
-            >
-              <option value="All">All Stock Levels</option>
-              <option value="in">In Stock (&gt; 5)</option>
-              <option value="low">Low Stock (≤ 5)</option>
-              <option value="out">Out of Stock (0 units)</option>
-            </select>
-
-            {(stockStatusFilter !== 'All' || categoryFilter !== 'All' || searchTerm) && (
-              <button
-                onClick={() => {
-                  setStockStatusFilter('All');
-                  setCategoryFilter('All');
-                  setSearchTerm('');
-                }}
-                className="text-xs text-ember-600 hover:text-ember-700 underline font-semibold cursor-pointer ml-1"
-              >
-                Clear Filters
-              </button>
-            )}
-
-            <span className="text-xs text-espresso-500 font-medium ml-1">
-              {filteredProducts.length} items
-            </span>
-          </div>
-        </div>
-
-        {/* Products Table (Responsive with direct stock editing) */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          {/* Products Table */}
           {filteredProducts.length === 0 ? (
-            <div className="text-center py-12 space-y-3">
+            <div className="text-center py-12 space-y-3 bg-cream-50 rounded-2xl border border-sand-200">
               <Package className="w-12 h-12 text-espresso-300 mx-auto" />
               <h3 className="font-serif text-lg font-bold text-espresso-900">No matching products found</h3>
               <p className="text-xs text-espresso-600 max-w-sm mx-auto">
@@ -424,18 +425,18 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                   setCategoryFilter('All');
                   setSearchTerm('');
                 }}
-                className="px-4 py-2 rounded-full text-xs font-semibold bg-forest-900 text-cream-50 hover:bg-forest-800 transition-colors"
+                className="px-4 py-2 rounded-full text-xs font-semibold bg-forest-900 text-cream-50 hover:bg-forest-800 transition-colors cursor-pointer"
               >
                 Reset Filters
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-sand-200">
+            <div className="overflow-x-auto rounded-2xl border border-sand-200 bg-cream-50 shadow-subtle touch-pan-y overscroll-x-contain">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-sand-100/90 border-b border-sand-200 text-espresso-600 font-bold uppercase tracking-wider text-[10px]">
                     <th
-                      className="py-3 px-4 cursor-pointer hover:text-espresso-950 select-none"
+                      className="py-3.5 px-4 cursor-pointer hover:text-espresso-950 select-none"
                       onClick={() => handleSort('name')}
                     >
                       <div className="flex items-center gap-1">
@@ -444,7 +445,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                       </div>
                     </th>
                     <th
-                      className="py-3 px-3 cursor-pointer hover:text-espresso-950 select-none"
+                      className="py-3.5 px-3 cursor-pointer hover:text-espresso-950 select-none"
                       onClick={() => handleSort('category')}
                     >
                       <div className="flex items-center gap-1">
@@ -453,7 +454,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                       </div>
                     </th>
                     <th
-                      className="py-3 px-3 cursor-pointer hover:text-espresso-950 select-none"
+                      className="py-3.5 px-3 cursor-pointer hover:text-espresso-950 select-none"
                       onClick={() => handleSort('price')}
                     >
                       <div className="flex items-center gap-1">
@@ -462,7 +463,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                       </div>
                     </th>
                     <th
-                      className="py-3 px-3 cursor-pointer hover:text-espresso-950 select-none min-w-[150px]"
+                      className="py-3.5 px-3 cursor-pointer hover:text-espresso-950 select-none min-w-[160px]"
                       onClick={() => handleSort('stock')}
                     >
                       <div className="flex items-center gap-1">
@@ -471,7 +472,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                       </div>
                     </th>
                     <th
-                      className="py-3 px-3 cursor-pointer hover:text-espresso-950 select-none"
+                      className="py-3.5 px-3 cursor-pointer hover:text-espresso-950 select-none"
                       onClick={() => handleSort('status')}
                     >
                       <div className="flex items-center gap-1">
@@ -479,7 +480,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                         <ArrowUpDown className="w-3 h-3 text-espresso-400" />
                       </div>
                     </th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+                    <th className="py-3.5 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-sand-200 bg-cream-50">
@@ -488,9 +489,9 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                     const isLow = p.stock > 0 && p.stock <= 5;
 
                     return (
-                      <tr key={p.id} className="hover:bg-cream-100/80 transition-colors">
+                      <tr key={p.id} className="hover:bg-cream-100/70 transition-colors">
                         {/* Item Details */}
-                        <td className="py-3 px-4">
+                        <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
                             <img
                               src={p.image}
@@ -503,7 +504,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                                   e.currentTarget.src = fallback;
                                 }
                               }}
-                              className="w-12 h-12 rounded-lg object-cover bg-sand-200 flex-shrink-0"
+                              className="w-12 h-12 rounded-xl object-cover bg-sand-200 flex-shrink-0 border border-sand-300"
                             />
                             <div className="min-w-0">
                               <span className="font-bold text-espresso-950 block truncate max-w-xs sm:max-w-sm">
@@ -522,23 +523,23 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                         </td>
 
                         {/* Category */}
-                        <td className="py-3 px-3 font-medium text-espresso-700 whitespace-nowrap">
+                        <td className="py-3.5 px-3 font-medium text-espresso-700 whitespace-nowrap">
                           {p.category}
                         </td>
 
                         {/* Price */}
-                        <td className="py-3 px-3 font-serif font-bold text-espresso-950 whitespace-nowrap">
+                        <td className="py-3.5 px-3 font-serif font-bold text-espresso-950 whitespace-nowrap">
                           {formatINR(p.price)}
                         </td>
 
                         {/* Stock Adjustment Controls with DIRECT NUMERIC EDIT & MIN 0 */}
-                        <td className="py-3 px-3 whitespace-nowrap">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
                             {/* Decrement Button (DISABLED IF STOCK IS 0 to prevent negative stock) */}
                             <button
                               onClick={() => updateStock(p.id, Math.max(0, p.stock - 1))}
                               disabled={p.stock <= 0}
-                              className="w-6 h-6 rounded bg-sand-200 hover:bg-sand-300 text-espresso-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center font-bold transition-colors cursor-pointer"
+                              className="w-7 h-7 rounded-lg bg-sand-200 hover:bg-sand-300 text-espresso-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center font-bold transition-colors cursor-pointer"
                               title={p.stock <= 0 ? 'Stock cannot be negative' : 'Decrease stock by 1'}
                             >
                               -
@@ -555,14 +556,14 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                                   updateStock(p.id, Math.max(0, val));
                                 }
                               }}
-                              className="w-14 text-center font-bold text-espresso-950 font-mono py-1 px-1 bg-cream-100 rounded border border-sand-300 focus:outline-none focus:ring-1 focus:ring-forest-700"
+                              className="w-14 text-center font-bold text-espresso-950 font-mono py-1 px-1 bg-cream-100 rounded-lg border border-sand-300 focus:outline-none focus:ring-1 focus:ring-forest-700"
                               title="Directly edit stock units (cannot be negative)"
                             />
 
                             {/* Increment Button */}
                             <button
                               onClick={() => updateStock(p.id, p.stock + 1)}
-                              className="w-6 h-6 rounded bg-sand-200 hover:bg-sand-300 text-espresso-800 flex items-center justify-center font-bold transition-colors cursor-pointer"
+                              className="w-7 h-7 rounded-lg bg-sand-200 hover:bg-sand-300 text-espresso-800 flex items-center justify-center font-bold transition-colors cursor-pointer"
                               title="Increase stock by 1"
                             >
                               +
@@ -572,7 +573,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                             {(isOut || isLow) && (
                               <button
                                 onClick={() => updateStock(p.id, p.stock + 5)}
-                                className="ml-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 transition-colors cursor-pointer"
+                                className="ml-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 transition-colors cursor-pointer"
                                 title="Quick restock +5 units"
                               >
                                 +5
@@ -582,10 +583,9 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                         </td>
 
                         {/* Status Indicator Badge */}
-                        <td className="py-3 px-3 whitespace-nowrap">
+                        <td className="py-3.5 px-3 whitespace-nowrap">
                           {isOut ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-rose-100 text-rose-800 border border-rose-200">
-                              <AlertCircle className="w-3 h-3 text-rose-600" />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-sand-200 text-espresso-700 border border-sand-300">
                               Out of Stock
                             </span>
                           ) : isLow ? (
@@ -602,7 +602,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                         </td>
 
                         {/* Actions */}
-                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleOpenEditForm(p)}

@@ -23,14 +23,22 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
     }
   }, [product]);
 
-  // Handle ESC key to close
+  // Handle ESC key to close and lock body scroll
   useEffect(() => {
+    if (!product) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+
+    return () => {
+      document.body.style.overflow = original;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [product, onClose]);
 
   if (!product) return null;
 
