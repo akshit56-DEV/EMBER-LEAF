@@ -1,9 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="8" fill="#1A3023"/>
-  <!-- Leaf -->
-  <path d="M16 6C16 6 11 10 11 16C11 20 14 23 16 25C18 23 21 20 21 16C21 10 16 6 16 6Z" fill="#FAF6F0" opacity="0.95"/>
-  <!-- Ember bean vein -->
-  <path d="M16 8C16 13 14 16 16 23" stroke="#C86D3B" stroke-width="1.8" stroke-linecap="round"/>
-  <!-- Ember spark point -->
-  <circle cx="16" cy="15" r="1.5" fill="#C86D3B"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="16" fill="#13241A" />
+  <!-- Outer subtle amber ring -->
+  <circle cx="32" cy="32" r="28" stroke="#C86D3B" stroke-width="1.5" stroke-dasharray="2 3" stroke-opacity="0.8"/>
+  <circle cx="32" cy="32" r="25" stroke="#FAF6F0" stroke-width="0.8" stroke-opacity="0.3"/>
+  
+  <!-- Left: Tea Leaf -->
+  <path d="M32 12C28 16 18 24 17 35C16 43 22 51 32 54C27 48 24 41 25 33C26 24 30 17 32 12Z" fill="#F3ECE1"/>
+  <path d="M28 28C24 31 22 35 22 35" stroke="#FAF6F0" stroke-width="1" stroke-linecap="round" stroke-opacity="0.6"/>
+  <path d="M27 38C23 41 21 45 21 45" stroke="#FAF6F0" stroke-width="1" stroke-linecap="round" stroke-opacity="0.6"/>
+
+  <!-- Right: Coffee Bean -->
+  <path d="M32 12C34 17 38 24 39 33C40 41 37 48 32 54C42 51 48 43 47 35C46 24 36 16 32 12Z" fill="#C86D3B"/>
+  <!-- Central S-crevice -->
+  <path d="M32 14C30 22 35 28 31 38C29 44 33 49 32 52" stroke="#FAF6F0" stroke-width="1.6" stroke-linecap="round"/>
+
+  <!-- Top: Ember Spark -->
+  <path d="M32 5L33.5 9.5L38 11L33.5 12.5L32 17L30.5 12.5L26 11L30.5 9.5L32 5Z" fill="#E58249"/>
+  <circle cx="32" cy="11" r="1.2" fill="#FAF6F0"/>
 </svg>

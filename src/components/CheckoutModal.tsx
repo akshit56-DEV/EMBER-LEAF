@@ -3,6 +3,7 @@ import { useCart } from '../context/CartContext';
 import type { CustomerDetails, OrderConfirmation } from '../types';
 import { formatINR, formatDate } from '../utils/formatters';
 import { X, CheckCircle2, ShieldAlert, Sparkles, ShoppingBag, ArrowRight, PackageCheck, Printer } from 'lucide-react';
+import { BrandEmblem } from './Logo';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -129,9 +130,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         {/* Header */}
         <div className="p-5 sm:p-6 border-b border-sand-200 bg-cream-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-forest-900 text-cream-50 flex items-center justify-center font-serif font-bold text-lg">
-              E&amp;L
-            </div>
+            <BrandEmblem sizeClass="w-10 h-10" />
             <div>
               <h2 id="checkout-modal-title" className="font-serif text-xl font-bold text-espresso-950">
                 {lastConfirmedOrder ? 'Demo Order Confirmed' : 'Artisanal Demo Checkout'}

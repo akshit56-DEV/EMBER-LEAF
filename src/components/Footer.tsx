@@ -1,6 +1,7 @@
 import React from 'react';
 import { SlidersHorizontal, MapPin, Mail, Phone, Heart, Sparkles } from 'lucide-react';
 import type { ProductCategory } from '../types';
+import { Logo } from './Logo';
 
 interface FooterProps {
   onSelectCategory: (cat: ProductCategory | 'All') => void;
@@ -29,20 +30,8 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory, onOpenInventor
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 pb-12 border-b border-espresso-800/80">
           {/* Brand Column */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-forest-900 flex items-center justify-center text-cream-100 border border-forest-800">
-                <span className="font-serif font-bold text-lg text-ember-500">
-                  E<span className="text-cream-100 font-sans text-xs -ml-0.5">&amp;</span>L
-                </span>
-              </div>
-              <div>
-                <span className="font-serif text-2xl font-bold tracking-wider text-cream-50 block">
-                  EMBER &amp; LEAF
-                </span>
-                <span className="text-[10px] tracking-widest uppercase text-cream-400 font-medium block">
-                  Specialty Coffee &amp; Artisanal Tea Atelier
-                </span>
-              </div>
+            <div className="group cursor-pointer">
+              <Logo size="lg" variant="light" />
             </div>
 
             <p className="text-xs text-cream-200/80 max-w-sm leading-relaxed font-light">

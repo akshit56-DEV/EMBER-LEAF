@@ -3,6 +3,7 @@ import { ShoppingBag, Search, SlidersHorizontal, Menu, X, Coffee, Sparkles } fro
 import { useCart } from '../context/CartContext';
 import { useInventory } from '../context/InventoryContext';
 import type { ProductCategory } from '../types';
+import { Logo } from './Logo';
 
 interface NavbarProps {
   onOpenInventory: () => void;
@@ -68,26 +69,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Brand Logo & Treatment */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="flex items-center gap-2.5 text-left group cursor-pointer focus:outline-none"
+              className="group cursor-pointer focus:outline-none"
               aria-label="EMBER & LEAF home"
             >
-              {/* Monogram emblem */}
-              <div className="w-10 h-10 rounded-xl bg-forest-900 flex items-center justify-center text-cream-100 shadow-sm transition-transform group-hover:scale-105 border border-forest-800">
-                <span className="font-serif font-bold text-lg tracking-wider text-ember-500">
-                  E<span className="text-cream-100 font-sans text-xs -ml-0.5">&amp;</span>L
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span className="font-serif text-xl sm:text-2xl font-bold tracking-wider text-espresso-900 group-hover:text-forest-900 transition-colors">
-                  EMBER &amp; LEAF
-                </span>
-                <span className="text-[10px] sm:text-[11px] font-medium tracking-widest uppercase text-espresso-600/80 -mt-0.5">
-                  Artisanal Coffee &amp; Tea • Est. 2024
-                </span>
-              </div>
+              <Logo size="md" variant="dark" />
             </button>
           </div>
 
