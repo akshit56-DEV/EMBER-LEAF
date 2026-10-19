@@ -113,7 +113,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Plucked exclusively on frosty January mornings in the Blue Mountains. Velvety, creamy mouthfeel with crystalline nuances of winter melon and white orchid.',
     price: 1150,
     image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?q=80&w=1000&auto=format&fit=crop',
-    stock: 0,
+    stock: 7,
     badge: 'Rare Harvest',
     origin: 'Coonoor High Slopes, Nilgiris (2,100m)',
     roastLevel: 'Sun-Cured White Tea Needle',

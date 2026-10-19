@@ -6,7 +6,6 @@ import {
   X,
   Plus,
   Search,
-  Filter,
   Edit2,
   Trash2,
   AlertTriangle,
@@ -16,7 +15,9 @@ import {
   Layers,
   TrendingUp,
   AlertCircle,
-  Eye,
+  Download,
+  ArrowUpDown,
+  Sparkles,
   Info,
 } from 'lucide-react';
 
@@ -24,6 +25,8 @@ interface InventoryPanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+type SortColumn = 'name' | 'category' | 'price' | 'stock' | 'status';
 
 export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose }) => {
   const {
@@ -45,6 +48,10 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
   const [categoryFilter, setCategoryFilter] = useState<ProductCategory | 'All'>('All');
   const [stockStatusFilter, setStockStatusFilter] = useState<'All' | 'low' | 'out' | 'in'>('All');
 
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState<SortColumn>('stock');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
   // Modals inside inventory
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -65,31 +72,57 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
 
   if (!isOpen) return null;
 
-  // Filtered products list
-  const filteredProducts = products.filter((p) => {
-    // Search
-    const query = searchTerm.toLowerCase().trim();
-    const matchesSearch =
-      query === '' ||
-      p.name.toLowerCase().includes(query) ||
-      p.id.toLowerCase().includes(query) ||
-      (p.origin && p.origin.toLowerCase().includes(query));
-
-    // Category
-    const matchesCategory = categoryFilter === 'All' || p.category === categoryFilter;
-
-    // Stock Status
-    let matchesStock = true;
-    if (stockStatusFilter === 'low') {
-      matchesStock = p.stock > 0 && p.stock <= 5;
-    } else if (stockStatusFilter === 'out') {
-      matchesStock = p.stock <= 0;
-    } else if (stockStatusFilter === 'in') {
-      matchesStock = p.stock > 5;
+  // Sorting handler
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
     }
+  };
 
-    return matchesSearch && matchesCategory && matchesStock;
-  });
+  // Filtered and sorted products list
+  const filteredProducts = products
+    .filter((p) => {
+      // Search
+      const query = searchTerm.toLowerCase().trim();
+      const matchesSearch =
+        query === '' ||
+        p.name.toLowerCase().includes(query) ||
+        p.id.toLowerCase().includes(query) ||
+        (p.origin && p.origin.toLowerCase().includes(query));
+
+      // Category
+      const matchesCategory = categoryFilter === 'All' || p.category === categoryFilter;
+
+      // Stock Status
+      let matchesStock = true;
+      if (stockStatusFilter === 'low') {
+        matchesStock = p.stock > 0 && p.stock <= 5;
+      } else if (stockStatusFilter === 'out') {
+        matchesStock = p.stock <= 0;
+      } else if (stockStatusFilter === 'in') {
+        matchesStock = p.stock > 5;
+      }
+
+      return matchesSearch && matchesCategory && matchesStock;
+    })
+    .sort((a, b) => {
+      let comparison = 0;
+      if (sortColumn === 'name') {
+        comparison = a.name.localeCompare(b.name);
+      } else if (sortColumn === 'category') {
+        comparison = a.category.localeCompare(b.category);
+      } else if (sortColumn === 'price') {
+        comparison = a.price - b.price;
+      } else if (sortColumn === 'stock') {
+        comparison = a.stock - b.stock;
+      } else if (sortColumn === 'status') {
+        comparison = a.stock - b.stock;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
 
   const handleOpenAddForm = () => {
     setEditingProduct(null);
@@ -106,6 +139,33 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
       deleteProduct(deletingProductId);
       setDeletingProductId(null);
     }
+  };
+
+  // Export inventory to CSV
+  const handleExportCSV = () => {
+    const headers = ['SKU ID', 'Product Name', 'Category', 'Price (INR)', 'Units in Stock', 'Stock Value (INR)', 'Stock Health'];
+    const rows = products.map((p) => {
+      const health = p.stock <= 0 ? 'Out of Stock' : p.stock <= 5 ? 'Low Stock' : 'Healthy';
+      return [
+        `"${p.id}"`,
+        `"${p.name.replace(/"/g, '""')}"`,
+        `"${p.category}"`,
+        p.price,
+        p.stock,
+        p.price * p.stock,
+        `"${health}"`,
+      ];
+    });
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `ember-leaf-inventory-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -135,10 +195,18 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleExportCSV}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-cream-50 hover:bg-cream-200 border border-sand-300 text-espresso-800 transition-colors cursor-pointer shadow-subtle"
+              title="Download CSV report of current inventory"
+            >
+              <Download className="w-3.5 h-3.5 text-forest-700" />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
             <button
               onClick={resetToDefaults}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-cream-50 hover:bg-cream-200 border border-sand-300 text-espresso-800 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-cream-50 hover:bg-cream-200 border border-sand-300 text-espresso-800 transition-colors cursor-pointer shadow-subtle"
               title="Reset inventory to original demonstration items"
             >
               <RotateCcw className="w-3.5 h-3.5 text-forest-700" />
@@ -161,26 +229,39 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
           </div>
         </div>
 
-        {/* Demo Persistence Disclaimer */}
-        <div className="bg-sand-200/60 border-b border-sand-300 px-6 py-2 flex items-center justify-between text-xs text-espresso-700 flex-wrap gap-2">
+        {/* Demo Persistence Notice */}
+        <div className="bg-sand-100 border-b border-sand-200 px-6 py-2 flex items-center justify-between text-xs text-espresso-700 flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <Info className="w-3.5 h-3.5 text-forest-800 flex-shrink-0" />
             <span>
-              <strong>Local Browser Demonstration:</strong> Stock adjustments and product changes are saved in your browser's localStorage and update the storefront and active carts instantly.
+              <strong>Live Browser Persistence:</strong> All catalog updates and stock adjustments are saved to local browser storage and synchronize immediately with the storefront.
             </span>
           </div>
-          <span className="text-[11px] font-mono text-espresso-600">Storage Key: ember_leaf_inventory</span>
+          <span className="text-[11px] font-mono text-espresso-500">Auto-saved to localStorage</span>
         </div>
 
-        {/* KPI Metrics Strip */}
+        {/* Interactive KPI Metrics Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-4 sm:p-6 bg-cream-100/60 border-b border-sand-200">
-          {/* Total Products */}
-          <div className="bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle">
+          {/* Total Products (Clickable to reset filter) */}
+          <div
+            onClick={() => {
+              setStockStatusFilter('All');
+              setCategoryFilter('All');
+              setSearchTerm('');
+            }}
+            className="bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle hover:border-sand-300 cursor-pointer transition-all group"
+            title="Click to view all items"
+          >
             <div className="flex items-center justify-between text-espresso-500 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Catalog SKUs</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider group-hover:text-forest-900">
+                Catalog SKUs
+              </span>
               <Layers className="w-4 h-4 text-forest-700" />
             </div>
-            <span className="text-2xl font-serif font-bold text-espresso-950">{totalProducts}</span>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-serif font-bold text-espresso-950">{totalProducts}</span>
+              <span className="text-[10px] text-forest-800 font-medium group-hover:underline">View all</span>
+            </div>
           </div>
 
           {/* Total Units */}
@@ -192,25 +273,63 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
             <span className="text-2xl font-serif font-bold text-espresso-950">{totalUnitsInStock}</span>
           </div>
 
-          {/* Low Stock (<= 5) */}
-          <div className="bg-amber-50/70 p-3.5 rounded-xl border border-amber-200 shadow-subtle">
-            <div className="flex items-center justify-between text-amber-900 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Low Stock (≤5)</span>
-              <AlertTriangle className="w-4 h-4 text-amber-600" />
+          {/* Low Stock Alert (Clickable filter) */}
+          <div
+            onClick={() => setStockStatusFilter((prev) => (prev === 'low' ? 'All' : 'low'))}
+            className={`p-3.5 rounded-xl border shadow-subtle cursor-pointer transition-all ${
+              lowStockCount > 0
+                ? 'bg-amber-50/90 border-amber-300 text-amber-950 hover:bg-amber-100/80'
+                : 'bg-cream-50 border-sand-200 text-espresso-700 hover:border-sand-300'
+            } ${stockStatusFilter === 'low' ? 'ring-2 ring-amber-500 shadow-md' : ''}`}
+            title="Click to toggle filter for low stock items (≤ 5 units)"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider">
+                Low Stock Alert
+              </span>
+              <AlertTriangle className={`w-4 h-4 ${lowStockCount > 0 ? 'text-amber-600' : 'text-espresso-400'}`} />
             </div>
-            <span className="text-2xl font-serif font-bold text-amber-900">{lowStockCount}</span>
+            <div className="flex items-baseline justify-between">
+              <span className={`text-2xl font-serif font-bold ${lowStockCount > 0 ? 'text-amber-900' : 'text-espresso-950'}`}>
+                {lowStockCount}
+              </span>
+              <span className="text-[10px] font-medium text-espresso-500">
+                {lowStockCount > 0 ? '≤ 5 units left' : 'All healthy'}
+              </span>
+            </div>
           </div>
 
-          {/* Out of Stock (0) */}
-          <div className="bg-red-50/70 p-3.5 rounded-xl border border-red-200 shadow-subtle">
-            <div className="flex items-center justify-between text-red-900 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Out of Stock (0)</span>
-              <AlertCircle className="w-4 h-4 text-red-600" />
+          {/* Out of Stock (Clickable filter - NO INVALID RED CARD WHEN 0) */}
+          <div
+            onClick={() => setStockStatusFilter((prev) => (prev === 'out' ? 'All' : 'out'))}
+            className={`p-3.5 rounded-xl border shadow-subtle cursor-pointer transition-all ${
+              outOfStockCount > 0
+                ? 'bg-rose-50 border-rose-300 text-rose-950 hover:bg-rose-100/80'
+                : 'bg-cream-50 border-sand-200 text-espresso-700 hover:border-sand-300'
+            } ${stockStatusFilter === 'out' ? 'ring-2 ring-rose-500 shadow-md' : ''}`}
+            title="Click to toggle filter for out of stock items"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider">
+                Out of Stock
+              </span>
+              {outOfStockCount > 0 ? (
+                <AlertCircle className="w-4 h-4 text-rose-600" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              )}
             </div>
-            <span className="text-2xl font-serif font-bold text-red-900">{outOfStockCount}</span>
+            <div className="flex items-baseline justify-between">
+              <span className={`text-2xl font-serif font-bold ${outOfStockCount > 0 ? 'text-rose-900' : 'text-espresso-950'}`}>
+                {outOfStockCount}
+              </span>
+              <span className="text-[10px] font-medium text-espresso-500">
+                {outOfStockCount > 0 ? 'Needs restock' : 'None out of stock'}
+              </span>
+            </div>
           </div>
 
-          {/* Total Value */}
+          {/* Total Stock Valuation */}
           <div className="bg-cream-50 p-3.5 rounded-xl border border-sand-200 shadow-subtle col-span-2 sm:col-span-1">
             <div className="flex items-center justify-between text-espresso-500 mb-1">
               <span className="text-[11px] font-bold uppercase tracking-wider">Stock Valuation</span>
@@ -244,7 +363,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
             )}
           </div>
 
-          {/* Filters */}
+          {/* Filters & Count */}
           <div className="flex items-center gap-2 flex-wrap">
             {/* Category Filter */}
             <select
@@ -266,10 +385,23 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
               className="bg-cream-100 border border-sand-300 text-espresso-800 text-xs font-medium py-2 px-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-forest-700/20 cursor-pointer"
             >
               <option value="All">All Stock Levels</option>
-              <option value="in">In Stock (&gt;5)</option>
-              <option value="low">Low Stock (≤5)</option>
-              <option value="out">Out of Stock (0)</option>
+              <option value="in">In Stock (&gt; 5)</option>
+              <option value="low">Low Stock (≤ 5)</option>
+              <option value="out">Out of Stock (0 units)</option>
             </select>
+
+            {(stockStatusFilter !== 'All' || categoryFilter !== 'All' || searchTerm) && (
+              <button
+                onClick={() => {
+                  setStockStatusFilter('All');
+                  setCategoryFilter('All');
+                  setSearchTerm('');
+                }}
+                className="text-xs text-ember-600 hover:text-ember-700 underline font-semibold cursor-pointer ml-1"
+              >
+                Clear Filters
+              </button>
+            )}
 
             <span className="text-xs text-espresso-500 font-medium ml-1">
               {filteredProducts.length} items
@@ -277,7 +409,7 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
           </div>
         </div>
 
-        {/* Products Table (Responsive) */}
+        {/* Products Table (Responsive with direct stock editing) */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {filteredProducts.length === 0 ? (
             <div className="text-center py-12 space-y-3">
@@ -286,17 +418,67 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
               <p className="text-xs text-espresso-600 max-w-sm mx-auto">
                 Try adjusting your search query or filter settings, or add a new handcrafted product to your inventory.
               </p>
+              <button
+                onClick={() => {
+                  setStockStatusFilter('All');
+                  setCategoryFilter('All');
+                  setSearchTerm('');
+                }}
+                className="px-4 py-2 rounded-full text-xs font-semibold bg-forest-900 text-cream-50 hover:bg-forest-800 transition-colors"
+              >
+                Reset Filters
+              </button>
             </div>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-sand-200">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-sand-100/90 border-b border-sand-200 text-espresso-600 font-bold uppercase tracking-wider text-[10px]">
-                    <th className="py-3 px-4">Item &amp; Details</th>
-                    <th className="py-3 px-3">Category</th>
-                    <th className="py-3 px-3">Price</th>
-                    <th className="py-3 px-3">Stock Units</th>
-                    <th className="py-3 px-3">Status</th>
+                    <th
+                      className="py-3 px-4 cursor-pointer hover:text-espresso-950 select-none"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Item &amp; Details</span>
+                        <ArrowUpDown className="w-3 h-3 text-espresso-400" />
+                      </div>
+                    </th>
+                    <th
+                      className="py-3 px-3 cursor-pointer hover:text-espresso-950 select-none"
+                      onClick={() => handleSort('category')}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Category</span>
+                        <ArrowUpDown className="w-3 h-3 text-espresso-400" />
+                      </div>
+                    </th>
+                    <th
+                      className="py-3 px-3 cursor-pointer hover:text-espresso-950 select-none"
+                      onClick={() => handleSort('price')}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Price</span>
+                        <ArrowUpDown className="w-3 h-3 text-espresso-400" />
+                      </div>
+                    </th>
+                    <th
+                      className="py-3 px-3 cursor-pointer hover:text-espresso-950 select-none min-w-[150px]"
+                      onClick={() => handleSort('stock')}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Stock Units</span>
+                        <ArrowUpDown className="w-3 h-3 text-espresso-400" />
+                      </div>
+                    </th>
+                    <th
+                      className="py-3 px-3 cursor-pointer hover:text-espresso-950 select-none"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Status</span>
+                        <ArrowUpDown className="w-3 h-3 text-espresso-400" />
+                      </div>
+                    </th>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -349,19 +531,35 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                           {formatINR(p.price)}
                         </td>
 
-                        {/* Stock Adjustment Controls */}
+                        {/* Stock Adjustment Controls with DIRECT NUMERIC EDIT & MIN 0 */}
                         <td className="py-3 px-3 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">
+                            {/* Decrement Button (DISABLED IF STOCK IS 0 to prevent negative stock) */}
                             <button
                               onClick={() => updateStock(p.id, Math.max(0, p.stock - 1))}
-                              className="w-6 h-6 rounded bg-sand-200 hover:bg-sand-300 text-espresso-800 flex items-center justify-center font-bold transition-colors cursor-pointer"
-                              title="Decrease stock by 1"
+                              disabled={p.stock <= 0}
+                              className="w-6 h-6 rounded bg-sand-200 hover:bg-sand-300 text-espresso-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center font-bold transition-colors cursor-pointer"
+                              title={p.stock <= 0 ? 'Stock cannot be negative' : 'Decrease stock by 1'}
                             >
                               -
                             </button>
-                            <span className="w-8 text-center font-bold text-espresso-950 font-mono">
-                              {p.stock}
-                            </span>
+
+                            {/* Direct Numeric Input */}
+                            <input
+                              type="number"
+                              min={0}
+                              value={p.stock}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                if (!isNaN(val)) {
+                                  updateStock(p.id, Math.max(0, val));
+                                }
+                              }}
+                              className="w-14 text-center font-bold text-espresso-950 font-mono py-1 px-1 bg-cream-100 rounded border border-sand-300 focus:outline-none focus:ring-1 focus:ring-forest-700"
+                              title="Directly edit stock units (cannot be negative)"
+                            />
+
+                            {/* Increment Button */}
                             <button
                               onClick={() => updateStock(p.id, p.stock + 1)}
                               className="w-6 h-6 rounded bg-sand-200 hover:bg-sand-300 text-espresso-800 flex items-center justify-center font-bold transition-colors cursor-pointer"
@@ -369,13 +567,25 @@ export const InventoryPanel: React.FC<InventoryPanelProps> = ({ isOpen, onClose 
                             >
                               +
                             </button>
+
+                            {/* Quick Restock (+5) button if low or out of stock */}
+                            {(isOut || isLow) && (
+                              <button
+                                onClick={() => updateStock(p.id, p.stock + 5)}
+                                className="ml-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300 transition-colors cursor-pointer"
+                                title="Quick restock +5 units"
+                              >
+                                +5
+                              </button>
+                            )}
                           </div>
                         </td>
 
                         {/* Status Indicator Badge */}
                         <td className="py-3 px-3 whitespace-nowrap">
                           {isOut ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-red-100 text-red-800 border border-red-200">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-rose-100 text-rose-800 border border-rose-200">
+                              <AlertCircle className="w-3 h-3 text-rose-600" />
                               Out of Stock
                             </span>
                           ) : isLow ? (
@@ -468,8 +678,8 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     name: editingProduct?.name || '',
     category: editingProduct?.category || 'Coffee',
     description: editingProduct?.description || '',
-    price: editingProduct?.price || 500,
-    image: editingProduct?.image || '',
+    price: editingProduct?.price || 650,
+    image: editingProduct?.image || DEFAULT_CATEGORY_FALLBACKS.Coffee,
     stock: editingProduct?.stock ?? 10,
     badge: editingProduct?.badge || '',
     origin: editingProduct?.origin || '',
@@ -483,6 +693,43 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     editingProduct?.flavorNotes ? editingProduct.flavorNotes.join(', ') : ''
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Synchronize when editingProduct changes
+  useEffect(() => {
+    if (editingProduct) {
+      setFormData({
+        name: editingProduct.name,
+        category: editingProduct.category,
+        description: editingProduct.description,
+        price: editingProduct.price,
+        image: editingProduct.image,
+        stock: editingProduct.stock,
+        badge: editingProduct.badge || '',
+        origin: editingProduct.origin || '',
+        roastLevel: editingProduct.roastLevel || '',
+        flavorNotes: editingProduct.flavorNotes || [],
+        brewGuide: editingProduct.brewGuide || '',
+        weightOrSize: editingProduct.weightOrSize || '',
+      });
+      setFlavorNotesInput(editingProduct.flavorNotes ? editingProduct.flavorNotes.join(', ') : '');
+    } else {
+      setFormData({
+        name: '',
+        category: 'Coffee',
+        description: '',
+        price: 650,
+        image: DEFAULT_CATEGORY_FALLBACKS.Coffee,
+        stock: 10,
+        badge: '',
+        origin: '',
+        roastLevel: '',
+        flavorNotes: [],
+        brewGuide: '',
+        weightOrSize: '',
+      });
+      setFlavorNotesInput('');
+    }
+  }, [editingProduct]);
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -500,7 +747,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
     }
 
     if (isNaN(formData.stock) || formData.stock < 0) {
-      errs.stock = 'Stock must be 0 or a positive number.';
+      errs.stock = 'Stock must be 0 or a positive number (cannot be negative).';
     }
 
     if (!formData.image.trim()) {
@@ -523,8 +770,16 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
 
     onSave({
       ...formData,
+      stock: Math.max(0, Math.floor(formData.stock)),
       flavorNotes: notesArray,
     });
+  };
+
+  const handleApplyPresetImage = (category: ProductCategory) => {
+    const url = DEFAULT_CATEGORY_FALLBACKS[category];
+    if (url) {
+      setFormData((prev) => ({ ...prev, image: url, category }));
+    }
   };
 
   return (
@@ -540,7 +795,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
           </h3>
           <button
             onClick={onClose}
-            className="p-1 rounded-full text-espresso-500 hover:text-espresso-900"
+            className="p-1 rounded-full text-espresso-500 hover:text-espresso-900 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -571,9 +826,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
               </label>
               <select
                 value={formData.category}
-                onChange={(e) =>
-                  setFormData({ ...formData, category: e.target.value as ProductCategory })
-                }
+                onChange={(e) => {
+                  const cat = e.target.value as ProductCategory;
+                  setFormData({ ...formData, category: cat });
+                }}
                 className="w-full px-3 py-2 rounded-xl bg-cream-100 border border-sand-300 focus:outline-none focus:border-forest-700 cursor-pointer"
               >
                 <option value="Coffee">Coffee</option>
@@ -631,7 +887,10 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                 min="0"
                 step="1"
                 value={formData.stock}
-                onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setFormData({ ...formData, stock: isNaN(val) ? 0 : Math.max(0, val) });
+                }}
                 className={`w-full px-3 py-2 rounded-xl bg-cream-100 border ${
                   errors.stock ? 'border-red-500' : 'border-sand-300'
                 } focus:outline-none focus:border-forest-700`}
@@ -653,11 +912,44 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
             </div>
           </div>
 
-          {/* Image URL & Live Preview */}
+          {/* Image URL & Instant Category Preset Quick Buttons */}
           <div>
-            <label className="block font-semibold text-espresso-800 mb-1">
-              Image URL <span className="text-red-600">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-semibold text-espresso-800">
+                Image URL <span className="text-red-600">*</span>
+              </label>
+              <div className="flex items-center gap-1.5 text-[10px]">
+                <span className="text-espresso-500">Pick image preset:</span>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPresetImage('Coffee')}
+                  className="px-2 py-0.5 rounded bg-sand-200 hover:bg-sand-300 text-espresso-800 cursor-pointer"
+                >
+                  Coffee
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPresetImage('Tea')}
+                  className="px-2 py-0.5 rounded bg-sand-200 hover:bg-sand-300 text-espresso-800 cursor-pointer"
+                >
+                  Tea
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPresetImage('Brewing Equipment')}
+                  className="px-2 py-0.5 rounded bg-sand-200 hover:bg-sand-300 text-espresso-800 cursor-pointer"
+                >
+                  Gear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPresetImage('Accessories')}
+                  className="px-2 py-0.5 rounded bg-sand-200 hover:bg-sand-300 text-espresso-800 cursor-pointer"
+                >
+                  Ceramic
+                </button>
+              </div>
+            </div>
             <div className="flex gap-3 items-center">
               <input
                 type="url"
@@ -675,7 +967,7 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
                   onError={(e) => {
                     e.currentTarget.src = DEFAULT_CATEGORY_FALLBACKS[formData.category];
                   }}
-                  className="w-10 h-10 rounded-lg object-cover bg-sand-200 border border-sand-300"
+                  className="w-10 h-10 rounded-lg object-cover bg-sand-200 border border-sand-300 flex-shrink-0"
                 />
               )}
             </div>
@@ -759,13 +1051,13 @@ const ProductFormModal: React.FC<ProductFormModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-full font-semibold text-espresso-700 hover:bg-cream-200"
+              className="px-4 py-2 rounded-full font-semibold text-espresso-700 hover:bg-cream-200 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2.5 rounded-full bg-forest-900 text-cream-50 font-semibold hover:bg-forest-800 shadow-sm"
+              className="px-6 py-2.5 rounded-full bg-forest-900 text-cream-50 font-semibold hover:bg-forest-800 shadow-sm cursor-pointer"
             >
               {editingProduct ? 'Save Changes' : 'Create Product'}
             </button>
@@ -816,13 +1108,13 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
         <div className="flex gap-3 pt-2">
           <button
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-full font-semibold text-xs text-espresso-700 bg-cream-200 hover:bg-sand-200 transition-colors"
+            className="flex-1 py-2.5 rounded-full font-semibold text-xs text-espresso-700 bg-cream-200 hover:bg-sand-200 transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-2.5 rounded-full font-semibold text-xs text-red-50 bg-red-700 hover:bg-red-800 shadow-sm transition-colors"
+            className="flex-1 py-2.5 rounded-full font-semibold text-xs text-red-50 bg-red-700 hover:bg-red-800 shadow-sm transition-colors cursor-pointer"
           >
             Yes, Delete Item
           </button>
