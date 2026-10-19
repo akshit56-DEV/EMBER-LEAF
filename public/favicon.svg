@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#1A3023"/>
+  <!-- Leaf -->
+  <path d="M16 6C16 6 11 10 11 16C11 20 14 23 16 25C18 23 21 20 21 16C21 10 16 6 16 6Z" fill="#FAF6F0" opacity="0.95"/>
+  <!-- Ember bean vein -->
+  <path d="M16 8C16 13 14 16 16 23" stroke="#C86D3B" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Ember spark point -->
+  <circle cx="16" cy="15" r="1.5" fill="#C86D3B"/>
+</svg>
